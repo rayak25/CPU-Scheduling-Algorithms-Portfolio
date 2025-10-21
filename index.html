@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CPU Scheduling Visualizer | Portfolio Project</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* General Layout */
+    body {
+      font-family: "Poppins", sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #1b2735, #090a0f);
+      color: #eee;
+      overflow-x: hidden;
+    }
+
+    header {
+      text-align: center;
+      padding: 70px 20px 40px;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      color: #00b4d8;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      color: #b9d6e2;
+    }
+
+    /* Tabs */
+    .tab-container {
+      text-align: center;
+      margin: 20px auto;
+    }
+
+    .tab-button {
+      background: #023e8a;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: 0.3s;
+    }
+
+    .tab-button:hover,
+    .tab-button.active {
+      background: #00b4d8;
+    }
+
+    /* Sections */
+    section {
+      padding: 40px 15%;
+      text-align: center;
+    }
+
+    h2 {
+      color: #90e0ef;
+      margin-bottom: 20px;
+    }
+
+    p {
+      line-height: 1.6;
+      font-size: 1rem;
+      color: #ddd;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 30px;
+      border-radius: 15px;
+      margin: 20px auto;
+      max-width: 850px;
+      transition: transform 0.3s;
+    }
+
+    .card:hover {
+      transform: scale(1.02);
+    }
+
+    iframe {
+      width: 100%;
+      height: 520px;
+      border: 2px solid #00b4d8;
+      border-radius: 10px;
+      margin-top: 20px;
+      background-color: #000;
+    }
+
+    .fade {
+      animation: fadeIn 0.8s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: #00b4d8;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CPU Scheduling Visualizer</h1>
+    <p>Interactive Demonstration of Scheduling Algorithms: FCFS, SJF, and Round Robin Algorithms</p>
+  </header>
+
+  <div class="tab-container">
+    <button class="tab-button active" onclick="switchTab('fcfs')">FCFS</button>
+    <button class="tab-button" onclick="switchTab('sjf')">SJF</button>
+    <button class="tab-button" onclick="switchTab('rr')">Round Robin</button>
+  </div>
+
+  <section id="demoSection" class="fade">
+    <div class="card">
+      <h2 id="algoTitle">First Come First Serve (FCFS)</h2>
+      <p id="algoDesc">
+        The simplest scheduling algorithm — processes are executed in the order they arrive.
+      </p>
+      <iframe id="demoFrame" src="fcfs.html"></iframe>
+    </div>
+  </section>
+
+  <section class="fade">
+    <div class="card">
+      <h2>About the Project</h2>
+      <p>
+        This project aims to visualize CPU scheduling algorithms used in operating systems.
+        It demonstrates process handling by the scheduler through visual Gantt charts.
+        The system supports FCFS, SJF, and Round Robin algorithms.
+      </p>
+    </div>
+  </section>
+
+  <section class="fade">
+    <div class="card">
+      <h2>Objective</h2>
+      <p>
+        The objective is to provide an intuitive, visual and interactive understanding of CPU scheduling behavior.
+        Users can enter process data and instantly see execution order, waiting times, and turnaround times.
+      </p>
+    </div>
+  </section>
+
+  <section class="fade">
+    <div class="card">
+      <h2>Results & Insights</h2>
+      <p>
+        - <b>FCFS</b>: Simple and fair, but causes convoy effect.<br>
+        - <b>SJF</b>: Optimizes waiting time but may starve long processes.<br>
+        - <b>Round Robin</b>: Ensures fairness and responsiveness using time quantum.<br>
+        Visualization helps to compare efficiency across various algorithms clearly.
+      </p>
+    </div>
+  </section>
+
+  <section class="fade">
+    <div class="card">
+      <h2>Conclusion</h2>
+      <p>
+        The CPU Scheduling Visualizer transforms theory into interactive learning.
+        It bridges the gap between algorithm design and real-world performance understanding,
+        showcasing how scheduling decisions impact overall system efficiency.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Created by <strong>Ramya Pathak</strong> | Operating Systems Project</p>
+    <p>View Source on <a href="https://github.com/" target="_blank">GitHub</a></p>
+  </footer>
+
+  <script>
+    function switchTab(algo) {
+      const frame = document.getElementById("demoFrame");
+      const title = document.getElementById("algoTitle");
+      const desc = document.getElementById("algoDesc");
+      const buttons = document.querySelectorAll(".tab-button");
+
+      buttons.forEach(btn => btn.classList.remove("active"));
+      document.querySelector(`[onclick="switchTab('${algo}')"]`).classList.add("active");
+
+      if (algo === "fcfs") {
+        frame.src = "fcfs.html";
+        title.textContent = "First Come First Serve (FCFS)";
+        desc.textContent = "The simplest scheduling algorithm — processes are executed in the order they arrive.";
+      } else if (algo === "sjf") {
+        frame.src = "sjf.html";
+        title.textContent = "Shortest Job First (SJF)";
+        desc.textContent = "Selects the process with the smallest burst time next — optimal for minimizing waiting time.";
+      } else if (algo === "rr") {
+        frame.src = "rr.html";
+        title.textContent = "Round Robin (RR)";
+        desc.textContent = "Each process gets a fixed time slice (quantum) in cyclic order, ensuring fairness.";
+      }
+    }
+  </script>
+</body>
+</html>

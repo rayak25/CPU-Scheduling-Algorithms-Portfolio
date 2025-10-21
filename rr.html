@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Round Robin Scheduling Visualizer</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background-color: #0f2027;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      background-color: #0077b6;
+      color: white;
+      padding: 15px;
+      margin-bottom: 30px;
+      border-radius: 0 0 10px 10px;
+    }
+
+    form {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      background-color: #0077b6;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #00b4d8;
+    }
+
+    #output {
+      margin-top: 30px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1s ease-in;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      animation: fadeIn 1s ease-in forwards;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 6px 10px;
+    }
+
+    .gantt {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      height: 50px;
+      align-items: flex-end;
+    }
+
+    .bar {
+      height: 40px;
+      margin: 0 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      width: 0;
+      transition: width 1s linear;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+  </style>
+</head>
+<body>
+  <h1>Round Robin (RR) Scheduling</h1>
+
+  <form id="processForm">
+    <label>Number of Processes:</label>
+    <input type="number" id="num" min="1" max="10" value="3" required />
+    <label>Time Quantum:</label>
+    <input type="number" id="quantum" min="1" max="20" value="2" required />
+    <button type="submit">Generate Inputs</button>
+  </form>
+
+  <div id="inputArea"></div>
+  <div id="output"></div>
+
+  <script>
+    document.getElementById("processForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const n = parseInt(document.getElementById("num").value);
+      const quantum = parseInt(document.getElementById("quantum").value);
+      const inputArea = document.getElementById("inputArea");
+      inputArea.innerHTML = "";
+
+      let html = `<h3>Enter Arrival and Burst Times</h3>`;
+      html += `<table><tr><th>Process</th><th>Arrival Time</th><th>Burst Time</th></tr>`;
+      for (let i = 0; i < n; i++) {
+        html += `<tr>
+          <td>P${i + 1}</td>
+          <td><input type="number" id="arrival${i}" min="0" required /></td>
+          <td><input type="number" id="burst${i}" min="1" required /></td>
+        </tr>`;
+      }
+      html += `</table><button id="run">Run RR</button>`;
+      inputArea.innerHTML = html;
+
+      document.getElementById("run").addEventListener("click", function () {
+        const processes = [];
+        for (let i = 0; i < n; i++) {
+          const arrival = parseInt(document.getElementById(`arrival${i}`).value);
+          const burst = parseInt(document.getElementById(`burst${i}`).value);
+          processes.push({ pid: `P${i + 1}`, arrival, burst });
+        }
+        runRR(processes, quantum);
+      });
+    });
+
+    function runRR(processes, quantum) {
+      processes.sort((a, b) => a.arrival - b.arrival);
+      const n = processes.length;
+      const remaining = processes.map(p => p.burst);
+      const finishTime = new Array(n).fill(0);
+      const waitingTime = new Array(n).fill(0);
+      const turnaroundTime = new Array(n).fill(0);
+      const gantt = [];
+      let time = 0;
+      let queue = [];
+
+      while (true) {
+        // add newly arrived processes
+        processes.forEach((p, i) => {
+          if (p.arrival <= time && !queue.includes(i) && remaining[i] > 0) queue.push(i);
+        });
+
+        if (queue.length === 0) {
+          if (remaining.every(r => r === 0)) break;
+          time++;
+          continue;
+        }
+
+        const i = queue.shift();
+        const current = processes[i];
+        const exec = Math.min(quantum, remaining[i]);
+        const start = time;
+        const finish = start + exec;
+        gantt.push({ pid: current.pid, start, finish, burst: exec });
+        time = finish;
+        remaining[i] -= exec;
+
+        // add new arrivals after execution
+        processes.forEach((p, j) => {
+          if (p.arrival <= time && !queue.includes(j) && remaining[j] > 0) queue.push(j);
+        });
+
+        if (remaining[i] > 0) queue.push(i);
+        else {
+          finishTime[i] = time;
+          turnaroundTime[i] = finishTime[i] - current.arrival;
+          waitingTime[i] = turnaroundTime[i] - current.burst;
+        }
+      }
+
+      const results = processes.map((p, i) => ({
+        ...p,
+        finish: finishTime[i],
+        waiting: waitingTime[i],
+        tat: turnaroundTime[i]
+      }));
+
+      animateResults(results, gantt);
+    }
+
+    function animateResults(results, gantt) {
+      const output = document.getElementById("output");
+      output.style.opacity = "0";
+
+      let avgWT = 0, avgTAT = 0;
+      results.forEach(r => {
+        avgWT += r.waiting;
+        avgTAT += r.tat;
+      });
+      avgWT = (avgWT / results.length).toFixed(2);
+      avgTAT = (avgTAT / results.length).toFixed(2);
+
+      let tableHTML = `<h3>Results (Round Robin Scheduling)</h3>`;
+      tableHTML += `<table><tr><th>Process</th><th>Arrival</th><th>Burst</th><th>Finish</th><th>Waiting</th><th>Turnaround</th></tr>`;
+      results.forEach(r => {
+        tableHTML += `<tr>
+          <td>${r.pid}</td><td>${r.arrival}</td><td>${r.burst}</td>
+          <td>${r.finish}</td><td>${r.waiting}</td><td>${r.tat}</td>
+        </tr>`;
+      });
+      tableHTML += `</table>
+        <p><strong>Average Waiting Time:</strong> ${avgWT}</p>
+        <p><strong>Average Turnaround Time:</strong> ${avgTAT}</p>`;
+
+      let colors = ["#0077b6", "#00b4d8", "#48cae4", "#0096c7", "#90e0ef"];
+      let ganttHTML = `<div class="gantt">`;
+      gantt.forEach((r, i) => {
+        ganttHTML += `<div class="bar" id="bar${i}" style="background-color:${colors[i % colors.length]};">${r.pid}</div>`;
+      });
+      ganttHTML += `</div><div id="timeline" style="display:flex;justify-content:center;margin-top:5px;"></div>`;
+      output.innerHTML = tableHTML + ganttHTML;
+
+      const bars = gantt.map((_, i) => document.getElementById(`bar${i}`));
+      const timeline = document.getElementById("timeline");
+      timeline.innerHTML = `<span>${gantt[0].start}</span>`;
+      output.style.opacity = "1";
+      let currentTime = gantt[0].start;
+
+      gantt.forEach((r, i) => {
+        setTimeout(() => {
+          bars[i].style.width = `${r.burst * 35}px`;
+          currentTime = r.finish;
+          timeline.innerHTML += `<span style="margin-left:${r.burst * 35 - 5}px;">${currentTime}</span>`;
+        }, i * 800);
+      });
+    }
+  </script>
+</body>
+</html>

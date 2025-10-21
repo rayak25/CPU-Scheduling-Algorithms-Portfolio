@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SJF Scheduling Visualizer</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background-color: #0f2027;
+      color: white;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      background-color: #0077b6;
+      color: white;
+      padding: 15px;
+      margin-bottom: 30px;
+      border-radius: 0 0 10px 10px;
+    }
+
+    form {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      padding: 8px;
+      font-size: 14px;
+      border-radius: 5px;
+      border: none;
+    }
+
+    button {
+      background-color: #0077b6;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #00b4d8;
+    }
+
+    #output {
+      margin-top: 30px;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 1s ease-in;
+    }
+
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      animation: fadeIn 1s ease-in forwards;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 6px 10px;
+    }
+
+    .gantt {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      height: 50px;
+      align-items: flex-end;
+    }
+
+    .bar {
+      height: 40px;
+      margin: 0 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      width: 0;
+      transition: width 1s linear;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0;}
+      to {opacity: 1;}
+    }
+  </style>
+</head>
+<body>
+  <h1>Shortest Job First (SJF) Scheduling</h1>
+
+  <form id="processForm">
+    <label>Number of Processes:</label>
+    <input type="number" id="num" min="1" max="10" value="3" required />
+    <button type="submit">Generate Inputs</button>
+  </form>
+
+  <div id="inputArea"></div>
+  <div id="output"></div>
+
+  <script>
+    document.getElementById("processForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const n = parseInt(document.getElementById("num").value);
+      const inputArea = document.getElementById("inputArea");
+      inputArea.innerHTML = "";
+
+      let html = `<h3>Enter Arrival and Burst Times</h3>`;
+      html += `<table><tr><th>Process</th><th>Arrival Time</th><th>Burst Time</th></tr>`;
+      for (let i = 0; i < n; i++) {
+        html += `<tr>
+          <td>P${i + 1}</td>
+          <td><input type="number" id="arrival${i}" min="0" required /></td>
+          <td><input type="number" id="burst${i}" min="1" required /></td>
+        </tr>`;
+      }
+      html += `</table><button id="run">Run SJF</button>`;
+      inputArea.innerHTML = html;
+
+      document.getElementById("run").addEventListener("click", function () {
+        const processes = [];
+        for (let i = 0; i < n; i++) {
+          const arrival = parseInt(document.getElementById(`arrival${i}`).value);
+          const burst = parseInt(document.getElementById(`burst${i}`).value);
+          processes.push({ pid: `P${i + 1}`, arrival, burst });
+        }
+        runSJF(processes);
+      });
+    });
+
+    function runSJF(processes) {
+      const results = [];
+      const ready = [];
+      let time = 0;
+      const n = processes.length;
+      let completed = 0;
+
+      processes.sort((a, b) => a.arrival - b.arrival);
+
+      while (completed < n) {
+        // Push all processes that have arrived
+        processes.forEach(p => {
+          if (p.arrival <= time && !ready.includes(p) && !p.done) ready.push(p);
+        });
+
+        if (ready.length > 0) {
+          ready.sort((a, b) => a.burst - b.burst);
+          const current = ready.shift();
+          const start = time;
+          const finish = start + current.burst;
+          const waiting = start - current.arrival;
+          const tat = finish - current.arrival;
+          results.push({ ...current, start, finish, waiting, tat });
+          time = finish;
+          current.done = true;
+          completed++;
+        } else {
+          time++;
+        }
+      }
+
+      animateResults(results);
+    }
+
+    function animateResults(results) {
+      const output = document.getElementById("output");
+      output.style.opacity = "0";
+
+      let avgWT = 0, avgTAT = 0;
+      let tableHTML = `<h3>Results (SJF Scheduling)</h3>`;
+      tableHTML += `<table><tr><th>Process</th><th>Arrival</th><th>Burst</th><th>Start</th><th>Finish</th><th>Waiting</th><th>Turnaround</th></tr>`;
+
+      results.forEach(r => {
+        avgWT += r.waiting;
+        avgTAT += r.tat;
+        tableHTML += `<tr>
+          <td>${r.pid}</td><td>${r.arrival}</td><td>${r.burst}</td>
+          <td>${r.start}</td><td>${r.finish}</td>
+          <td>${r.waiting}</td><td>${r.tat}</td>
+        </tr>`;
+      });
+
+      avgWT = (avgWT / results.length).toFixed(2);
+      avgTAT = (avgTAT / results.length).toFixed(2);
+      tableHTML += `</table>
+        <p><strong>Average Waiting Time:</strong> ${avgWT}</p>
+        <p><strong>Average Turnaround Time:</strong> ${avgTAT}</p>`;
+
+      let colors = ["#0077b6", "#00b4d8", "#48cae4", "#0096c7", "#90e0ef"];
+      let ganttHTML = `<div class="gantt">`;
+      results.forEach((r, i) => {
+        ganttHTML += `<div class="bar" id="bar${i}" style="background-color:${colors[i % colors.length]};">${r.pid}</div>`;
+      });
+      ganttHTML += `</div><div id="timeline" style="display:flex;justify-content:center;margin-top:5px;"></div>`;
+      output.innerHTML = tableHTML + ganttHTML;
+
+      const bars = results.map((_, i) => document.getElementById(`bar${i}`));
+      const timeline = document.getElementById("timeline");
+      timeline.innerHTML = `<span>${results[0].start}</span>`;
+      output.style.opacity = "1";
+      let currentTime = results[0].start;
+
+      results.forEach((r, i) => {
+        setTimeout(() => {
+          bars[i].style.width = `${r.burst * 40}px`;
+          currentTime = r.finish;
+          timeline.innerHTML += `<span style="margin-left:${r.burst * 40 - 5}px;">${currentTime}</span>`;
+        }, i * 1200);
+      });
+    }
+  </script>
+</body>
+</html>
